@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Discord.Addons.EmojiTools" Version="2.0.2" />
+    <PackageReference Include="Discord.Addons.InteractiveCommands" Version="1.2.4" />
+    <PackageReference Include="Discord.Addons.MicrosoftLogging" Version="2.0.0-beta-00005" />
+    <PackageReference Include="Discord.Addons.Paginator" Version="2.3.0" />
+    <PackageReference Include="Discord.Net" Version="2.0.0-beta2-00965" />
+    <PackageReference Include="Discord.Net.Analyzers" Version="2.0.0-beta2-00965" />
+    <PackageReference Include="Discord.Net.Commands" Version="2.0.0-beta2-00965" />
+    <PackageReference Include="Discord.Net.Core" Version="2.0.0-beta2-00965" />
+    <PackageReference Include="Discord.Net.Providers.WS4Net" Version="2.0.0-beta2-00965" />
+    <PackageReference Include="Discord.Net.Rest" Version="2.0.0-beta2-00965" />
+    <PackageReference Include="Discord.Net.Rpc" Version="2.0.0-beta-00860" />
+    <PackageReference Include="Discord.Net.Webhook" Version="2.0.0-beta2-00965" />
+    <PackageReference Include="Discord.Net.WebSocket" Version="2.0.0-beta2-00965" />
+  </ItemGroup>
+
+</Project>
