@@ -45,7 +45,9 @@ namespace SicagaBot
                 //WebSocketProvider = WS4NetProvider.Instance
             });
             _config.Initialize();
+            _client.SetGameAsync(".? for commands!");
         }
+        
 
         // Example of a logging handler. This can be re-used by addons
         // that ask for a Func<LogMessage, Task>.
@@ -109,7 +111,7 @@ namespace SicagaBot
             // Tip: There's an overload taking in a 'validateScopes' bool to make sure
             // you haven't made any mistakes in your dependency graph.
             _services = _map.BuildServiceProvider();
-
+            
             // Either search the program and add all Module classes that can be found.
             // Module classes *must* be marked 'public' or they will be ignored.
             await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
@@ -128,11 +130,9 @@ namespace SicagaBot
 
             // Create a number to track where the prefix ends and the command begins
             int pos = 0;
-            // Replace the '!' with whatever character
-            // you want to prefix your commands with.
-            // Uncomment the second half if you also want
-            // commands to be invoked by mentioning the bot instead.
-            if (msg.HasCharPrefix('!', ref pos))
+
+            //prefix
+            if (msg.HasCharPrefix('.', ref pos))
             {
                 // Create a Command Context.
                 var context = new SocketCommandContext(_client, msg);
@@ -148,48 +148,3 @@ namespace SicagaBot
         }
     }
 }
-
-/*using System;
-using System.Threading.Tasks;
-using System.Reflection;
-using Discord;
-using Discord.WebSocket;
-using Discord.Commands;
-using Microsoft.Extensions.DependencyInjection;
-namespace SicagaBot
-{
-
-
-    public class Program
-    {
-
-        private DiscordSocketClient client;
-        private IServiceProvider services;
-        private CommandHandler _handler;
-        private readonly IServiceCollection _map = new ServiceCollection();
-
-        static void Main(string[] args) => new Program().Start().GetAwaiter().GetResult();
-
-        public async Task Start()
-        {
-            client = new DiscordSocketClient();
-
-
-            string token = "NDU1OTMyODg2MDk3NDYxMjQ5.DgDSRg.5-R9RPDnUAHaG4B4mxNzumOJYE4";
-
-            services = new ServiceCollection()
-                    .BuildServiceProvider();
-
-
-            await client.LoginAsync(TokenType.Bot, token);
-            await client.StartAsync();
-
-            _handler = new CommandHandler(services);
-            await _handler.ConfigureAsync(services);
-
-            await Task.Delay(-1);
-        }
-
-    }
-}
-*/
