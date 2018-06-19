@@ -5,7 +5,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
-using SicagaBot.Services.Configuration;
+using SicagaBot.Tools.Configuration;
+using System.Collections.Generic;
+using System.Linq;
+using Sicagabot.DTO;
 
 namespace SicagaBot
 {
@@ -14,6 +17,20 @@ namespace SicagaBot
         private readonly DiscordSocketClient _client;
 
         private Config _config = new Config(); //startup config
+
+        //Token for login
+        private string Token = "";
+
+        //IDs for Messages we are listening in on
+        private List<ulong> rolesMessages;
+
+        //Channels we want the bot to ignore
+        private List<ulong> ignoredChannels = new List<ulong>();
+
+        //dictionary for roles
+        public static List<EmoteRoleDTO> Roles = new List<EmoteRoleDTO>();
+       // private Dictionary<string, string> Roles = new Dictionary<string, string>();
+
 
         // Keep the CommandService and IServiceCollection around for use with commands.
         private readonly IServiceCollection _map = new ServiceCollection();
@@ -44,7 +61,30 @@ namespace SicagaBot
                 // add the `using` at the top, and uncomment this line:
                 //WebSocketProvider = WS4NetProvider.Instance
             });
-            _config.Initialize();
+
+            //get the login token from the config file
+            Token = _config.GetToken();
+            Console.WriteLine(Token);
+            //populate the dictionary of Roles and corresponding emotes
+            _config.GetRoles(ref Roles);
+            foreach (var v in Roles)
+            {
+                Console.WriteLine("We are looking for " + v.Emote + "and applying role " + v.Role);
+            }
+            //Get messages we are listening to
+            _config.GetMessagesListeningTo(ref rolesMessages);
+            foreach (ulong u in rolesMessages)
+            {
+                Console.WriteLine("we are listening to message " + u);
+            }
+            //get list of ignored channels
+            _config.GetIgnoredChannels(ref ignoredChannels);
+            foreach (ulong u in ignoredChannels)
+            {
+                Console.WriteLine("we are ignoring channel " + u);
+            }
+
+            //set "playing" message
             _client.SetGameAsync(".? for commands!");
         }
         
@@ -92,7 +132,7 @@ namespace SicagaBot
             await InitCommands();
 
             // Login and connect.
-            await _client.LoginAsync(TokenType.Bot, _config.Token);
+            await _client.LoginAsync(TokenType.Bot, Token);
             await _client.StartAsync();
 
             // Wait infinitely so your bot actually stays connected.
@@ -120,6 +160,9 @@ namespace SicagaBot
 
             // Subscribe a handler to see if a message invokes a command.
             _client.MessageReceived += HandleCommandAsync;
+            // 
+            _client.ReactionAdded += OnAddReaction;
+            _client.ReactionRemoved += OnRemovedReaction;
         }
 
         private async Task HandleCommandAsync(SocketMessage arg)
@@ -141,9 +184,68 @@ namespace SicagaBot
                 // rather an object stating if the command executed succesfully).
                 var result = await _commands.ExecuteAsync(context, pos, _services);
             }
+            //for things that aren't a command, but we still want the bot to respond to it.
+            //for the previous bot it had a few "joke" responses to common user messages like "lol"
             else
             {
 
+            }
+        }
+        
+        //when reactions are added to a message
+        private async Task OnAddReaction(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
+        {
+            Console.WriteLine("Reaction Added: " + reaction.Emote.Name);//DEBUG
+            foreach (ulong messageID in rolesMessages)
+            {
+                string rolename = "";
+                bool found = false;
+                //Check to see if it matches an emote we're looking for
+                foreach (var kvp in Roles)
+                {
+                    if (kvp.Emote == reaction.Emote.Name)
+                    {
+                        rolename = kvp.Role;
+                        var role = ((SocketGuildUser)reaction.User).Guild.Roles.Where(has => has.Name.ToUpper() == (rolename).ToUpper());
+                        await ((SocketGuildUser)reaction.User).AddRolesAsync(role);
+                        Console.WriteLine("Adding role " + rolename + " to user " + reaction.User.ToString());
+                        found = true;
+                    }
+                }
+                if (found)
+                    break;
+            }
+        }
+
+        private async Task OnRemovedReaction(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
+        {
+            Console.WriteLine("Reaction Removed: " + reaction.Emote.Name);//DEBUG
+
+            try
+            {
+                //If the ID is the message that the bot is listening for reactions on
+                foreach (ulong messageID in rolesMessages)
+                {
+                    if (reaction.MessageId == messageID)
+                    {
+                        //if the emote matches one in the dictionary
+                        string rolename = "";
+                        //if (Roles.TryGetValue(reaction.Emote.Name, out rolename))
+                        foreach (var kvp in Roles) {
+                                if (kvp.Emote == reaction.Emote.Name)
+                                {
+                                    rolename = kvp.Role;
+                                    var role = ((SocketGuildUser)reaction.User).Guild.Roles.Where(has => has.Name.ToUpper() == (rolename).ToUpper());
+                                    await ((SocketGuildUser)reaction.User).RemoveRolesAsync(role);
+                                    Console.WriteLine("removing role " + rolename + " from user " + reaction.User.ToString());
+                                }
+                            }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("Failure in role assignment script.");
             }
         }
     }
