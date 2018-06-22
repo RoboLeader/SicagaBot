@@ -48,10 +48,18 @@ namespace SicagaBot.Modules
         public async Task roll(int i)
         {
             Random die = new Random();
-            string msg = ", you rolled **" + die.Next(1, 6) + "**, ";
+            int adder = die.Next(1, 6);
+            int newadder = 0;
+            string msg = ", you rolled **" + adder + "**, ";
             for (int count = 2; count < i; count++)
-                msg += "**" + +die.Next(1, 6) + "**, ";
-            msg += "**" + +die.Next(1, 6) + "**";
+            {
+                newadder = die.Next(1, 6);
+                msg += "**" + newadder + "**, ";
+                adder += newadder;
+            }
+            newadder = die.Next(1, 6);
+            adder += newadder; 
+            msg += "**" + newadder + "** for a total of **" + adder + "**";
             await Context.Channel.SendMessageAsync(Context.User.Mention + msg);
         }
 
@@ -77,30 +85,56 @@ namespace SicagaBot.Modules
         public async Task roll(int i, [Remainder]string s)
         {
             Random die = new Random();
+            int total = 0;
+            int adder = 0;
             // if the die is a d8, d12 or d20
             if (i <= 0)
                 await Context.Channel.SendMessageAsync(Context.User.Mention + ", you can't roll zero dice :\\");
             else if (s == "d8") {
-                string msg = ", you rolled **" + die.Next(1, 8) + "**, ";
+                adder = die.Next(1, 8);
+                string msg = ", you rolled **" + adder + "**, ";
+                total += adder;
                 for (int count = 2; count < i; count++)
-                    msg += "**" + +die.Next(1, 8) + "**, ";
-                msg += "**" + +die.Next(1, 8) + "**";
+                {
+                    adder = die.Next(1, 8);
+                    msg += "**" + adder + "**, ";
+                    total += adder;
+                }
+                adder = die.Next(1, 8);
+                total += adder;
+                msg += "**" + adder + "** for a total of **" + total + "**";
                 await Context.Channel.SendMessageAsync(Context.User.Mention + msg);
             }
             else if (s == "d12")
             {
-                string msg = ", you rolled **" + die.Next(1, 12) + "**, ";
+                adder = die.Next(1, 12);
+                string msg = ", you rolled **" + adder + "**, ";
+                total += adder;
                 for (int count = 2; count < i; count++)
-                    msg += "**" + +die.Next(1, 12) + "**, ";
-                msg += "**" + +die.Next(1, 12) + "**";
+                {
+                    adder = die.Next(1, 12);
+                    msg += "**" + adder + "**, ";
+                    total += adder;
+                }
+                adder = die.Next(1, 12);
+                total += adder;
+                msg += "**" + adder + "** for a total of **" + total + "**";
                 await Context.Channel.SendMessageAsync(Context.User.Mention + msg);
             }
             else if (s == "d20")
             {
-                string msg = ", you rolled **" + die.Next(1, 20) + "**, ";
+                adder = die.Next(1, 20);
+                string msg = ", you rolled **" + adder + "**, ";
+                total += adder;
                 for (int count = 2; count < i; count++)
-                    msg += "**" + +die.Next(1, 20) + "**, ";
-                msg += "**" + +die.Next(1, 20) + "**";
+                {
+                    adder = die.Next(1, 20);
+                    msg += "**" + adder + "**, ";
+                    total += adder;
+                }
+                adder = die.Next(1, 20);
+                total += adder;
+                msg += "**" + adder + "** for a total of **" + total + "**";
                 await Context.Channel.SendMessageAsync(Context.User.Mention + msg);
             }
             else
@@ -119,7 +153,7 @@ namespace SicagaBot.Modules
 
         //NOTE, this does not work properly on emotes with spaces in the name
         //Gotta fix that.
-        [Command("addemoterole")]
+        [Command("addemoterolepair")]
         [RequireUserPermission(Discord.GuildPermission.Administrator)]
         public async Task AddEmoteRole(string e, [Remainder]string r)
         {
@@ -140,16 +174,80 @@ namespace SicagaBot.Modules
         [RequireUserPermission(Discord.GuildPermission.Administrator)]
         public async Task ShowEmoteRolePairs()
         {
-
+            string msg = "";
+            foreach (var kvp in Program.Roles)
+            {
+                msg += "emote: " + kvp.Emote + " role: " + kvp.Role + Environment.NewLine;
+            }
+            await Context.Channel.SendMessageAsync(msg);
         }
 
         [Command("deleteemoterolepair")]
+        [Alias("removeemoterolepair")]
         [RequireUserPermission(Discord.GuildPermission.Administrator)]
         public async Task DeleteEmoteRolePair(string e, string r)
+        {
+            bool found = false;
+            foreach (var kvp in Program.Roles)
+            {
+                if (kvp.Emote == e)
+                {
+                    if (kvp.Role == r)
+                    {
+                        Program.Roles.Remove(kvp);
+                        await Context.Channel.SendMessageAsync("emote pair found, removing.");
+                        Console.WriteLine("removing emote pair " + e + " " + r);
+                        found = true;
+                    }
+                }
+                if (!found)
+                    await Context.Channel.SendMessageAsync("No matching pair found.");
+            }
+        }
+
+        [Command("addignoredchannel")]
+        [RequireUserPermission(Discord.GuildPermission.Administrator)]
+        public async Task AddIgnoredChannel(ulong channelID)
         {
 
         }
 
+        [Command("showignoredchannels")]
+        [RequireUserPermission(Discord.GuildPermission.Administrator)]
+        public async Task ShowIgnoredChannels()
+        {
+
+        }
+
+        [Command("removeignoredchannel")]
+        [Alias("deleteignoredchannel")]
+        [RequireUserPermission(Discord.GuildPermission.Administrator)]
+        public async Task DeleteIgnoredChannel(ulong channelID)
+        {
+
+        }
+
+        [Command("addmessagetolisten")]
+        [RequireUserPermission(Discord.GuildPermission.Administrator)]
+        public async Task AddMessageToListen(ulong messageID)
+        {
+
+        }
+
+        [Command("showmessages")]
+        [RequireUserPermission(Discord.GuildPermission.Administrator)]
+        public async Task ShowListeningMessages()
+        {
+
+        }
+
+        [Command("deletemessagetolisten")]
+        [Alias("removemessagetolisten")]
+        [RequireUserPermission(Discord.GuildPermission.Administrator)]
+        public async Task DeleteMessageToListen(ulong messageID)
+        {
+
+        }
         //✓ᵛᵉʳᶦᶠᶦᵉᵈ
     }
 }
