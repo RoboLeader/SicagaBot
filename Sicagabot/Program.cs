@@ -16,7 +16,7 @@ namespace SicagaBot
     {
         private readonly DiscordSocketClient _client;
 
-        private Config _config = new Config(); //startup config
+        public static Config _config = new Config(); //startup config
 
         //Token for login
         private string Token = "";
@@ -183,23 +183,31 @@ namespace SicagaBot
                 // Execute the command. (result does not indicate a return value, 
                 // rather an object stating if the command executed succesfully).
                 var result = await _commands.ExecuteAsync(context, pos, _services);
+
+                //TO-DO: add logging.
+
             }
             //for things that aren't a command, but we still want the bot to respond to it.
             //for the previous bot it had a few "joke" responses to common user messages like "lol"
             else
             {
-
+                //wave if mentioned directly
+                if (arg.Content.Contains("<@455932886097461249>"))
+                {
+                    IEmote emote = new Emoji("\U0001f44b");
+                    await msg.AddReactionAsync(emote);
+                }
             }
         }
         
         //when reactions are added to a message
         private async Task OnAddReaction(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
         {
-            Console.WriteLine("Reaction Added: " + reaction.Emote.Name);//DEBUG
+            //Console.WriteLine("Reaction Added: " + reaction.Emote.Name);//DEBUG
             foreach (ulong messageID in rolesMessages)
             {
                 string rolename = "";
-                bool found = false;
+                bool found = false;//if we found a matching emote, no need to check anymore.
                 //Check to see if it matches an emote we're looking for
                 foreach (var kvp in Roles)
                 {
@@ -212,14 +220,14 @@ namespace SicagaBot
                         found = true;
                     }
                 }
-                if (found)
+                if (found)//emote is found, break out.
                     break;
             }
         }
 
         private async Task OnRemovedReaction(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
         {
-            Console.WriteLine("Reaction Removed: " + reaction.Emote.Name);//DEBUG
+            //Console.WriteLine("Reaction Removed: " + reaction.Emote.Name);//DEBUG
 
             try
             {

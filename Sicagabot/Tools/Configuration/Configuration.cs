@@ -1,12 +1,18 @@
-﻿using Newtonsoft.Json;
+﻿using Discord.Commands;
+using Newtonsoft.Json;
 using Sicagabot.DTO;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Xml;
+using Discord.Addons.EmojiTools;
 
 //Tool to be called on startup and when bot configuration needs to be changed.
+
+//TO-DO:
+//Move all data the program will store into this class so we aren't just storing all kinds of crap wherever.
+//A bunch of stuff is stored in Program and I don't like it, this class exists for a reason.
 
 namespace SicagaBot.Tools.Configuration
 {
@@ -15,7 +21,7 @@ namespace SicagaBot.Tools.Configuration
         //get login token, nothing fancy here, just keeping it out of the code.
         public string GetToken()
         {
-            Console.WriteLine("-- Getting login Token");
+            Console.WriteLine("\n-- Getting login Token");
             string s = "";
             try
                 {
@@ -31,7 +37,7 @@ namespace SicagaBot.Tools.Configuration
         //get all the messages that we are listening for reactions on.
         public void GetMessagesListeningTo(ref List<ulong> m)
         {
-            Console.WriteLine("-- Getting list of messages we're listening to");
+            Console.WriteLine("\n-- Getting list of messages we're listening to");
             try
             {
                 string json = "";
@@ -54,7 +60,7 @@ namespace SicagaBot.Tools.Configuration
         //populate the dictionary from file
         public void GetRoles(ref List<EmoteRoleDTO> Roles)
         {
-            Console.WriteLine("-- Getting Emote/Role pairs");
+            Console.WriteLine("\n-- Getting Emote/Role pairs");
             string json = "";
             try
             {
@@ -74,7 +80,7 @@ namespace SicagaBot.Tools.Configuration
         //get list of ignored channels
         public void GetIgnoredChannels(ref List<ulong> ignoredchannels)
         {
-            Console.WriteLine("-- Getting list of ignored channels");
+            Console.WriteLine("\n-- Getting list of ignored channels");
             string json = "";
             try
             {
@@ -96,7 +102,7 @@ namespace SicagaBot.Tools.Configuration
         ////For modifying values while bot is running/////
         //////////////////////////////////////////////////
 
-        public void AddRoles(string emote, string role)
+        public void AddRoles(string emote, string role, SocketCommandContext context)
         {
 
         }

@@ -16,7 +16,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using Discord.WebSocket;
-
+using Sicagabot.DTO;
 
 namespace SicagaBot.Modules
 {
@@ -31,18 +31,31 @@ namespace SicagaBot.Modules
             await Context.Channel.SendMessageAsync
                 (
                 "`.help` (Shows this message)" + Environment.NewLine
-                + "`roll` Rolls a 6-sided die"
+                + "`.roll` (roll a die. Add a number to roll multiple 6-sided dice, add what kind of die to roll to roll one of those. *EX: .roll 3 d20*)"
                 );
         }
         
-
+        //rolls a single d6 by default
         [Command("roll")]
         public async Task roll()
         {
             Random die = new Random();
-            await Context.Channel.SendMessageAsync(Context.User.Mention + ", you rolled a **" + die.Next(1, 6) + "**");
+            await Context.Channel.SendMessageAsync(Context.User.Mention + ", you rolled **" + die.Next(1, 6) + "**");
         }
 
+        //overload for a bunch of d6's
+        [Command("roll")]
+        public async Task roll(int i)
+        {
+            Random die = new Random();
+            string msg = ", you rolled **" + die.Next(1, 6) + "**, ";
+            for (int count = 2; count < i; count++)
+                msg += "**" + +die.Next(1, 6) + "**, ";
+            msg += "**" + +die.Next(1, 6) + "**";
+            await Context.Channel.SendMessageAsync(Context.User.Mention + msg);
+        }
+
+        //overload for extra kinds of dice
         [Command("roll")]
         public async Task roll([Remainder]string s)
         {
@@ -56,6 +69,43 @@ namespace SicagaBot.Modules
                 await Context.Channel.SendMessageAsync(Context.User.Mention + ", you rolled a **" + die.Next(1, 20) + "**");
             else
              await Context.Channel.SendMessageAsync(Context.User.Mention + ", you rolled a **" + die.Next(1, 8) + "**");
+            
+        }
+
+        //overload for MULTIPLE extra kinds of dice
+        [Command("roll")]
+        public async Task roll(int i, [Remainder]string s)
+        {
+            Random die = new Random();
+            // if the die is a d8, d12 or d20
+            if (i <= 0)
+                await Context.Channel.SendMessageAsync(Context.User.Mention + ", you can't roll zero dice :\\");
+            else if (s == "d8") {
+                string msg = ", you rolled **" + die.Next(1, 8) + "**, ";
+                for (int count = 2; count < i; count++)
+                    msg += "**" + +die.Next(1, 8) + "**, ";
+                msg += "**" + +die.Next(1, 8) + "**";
+                await Context.Channel.SendMessageAsync(Context.User.Mention + msg);
+            }
+            else if (s == "d12")
+            {
+                string msg = ", you rolled **" + die.Next(1, 12) + "**, ";
+                for (int count = 2; count < i; count++)
+                    msg += "**" + +die.Next(1, 12) + "**, ";
+                msg += "**" + +die.Next(1, 12) + "**";
+                await Context.Channel.SendMessageAsync(Context.User.Mention + msg);
+            }
+            else if (s == "d20")
+            {
+                string msg = ", you rolled **" + die.Next(1, 20) + "**, ";
+                for (int count = 2; count < i; count++)
+                    msg += "**" + +die.Next(1, 20) + "**, ";
+                msg += "**" + +die.Next(1, 20) + "**";
+                await Context.Channel.SendMessageAsync(Context.User.Mention + msg);
+            }
+            else
+                await Context.Channel.SendMessageAsync(Context.User.Mention + ", you rolled **" + die.Next(1, 8) + "**");
+
         }
 
         //about message.
@@ -64,30 +114,41 @@ namespace SicagaBot.Modules
         public async Task about()
         {
             await Context.Channel.SendMessageAsync("**SicagaBot version: " + version
-                + "**\nCreated by <@156651495884849153> using Discord.NET for Sicaga.\n");
+                + "**\nCreated by <@156651495884849153> using Discord.NET for the Sicaga Discord server.\n");
         }
 
-        /* moving file downloads to service
-
-        //download file code
-        //uses HttpClient to maintain compatability with dotnet Core 1.0
-        public static async Task<byte[]> DownloadAsByteArray(string url)
+        //NOTE, this does not work properly on emotes with spaces in the name
+        //Gotta fix that.
+        [Command("addemoterole")]
+        [RequireUserPermission(Discord.GuildPermission.Administrator)]
+        public async Task AddEmoteRole(string e, [Remainder]string r)
         {
-            using (var client = new HttpClient())
+            var newrole = new EmoteRoleDTO();
+            newrole.Emote = e;
+            newrole.Role = r;
+            Program.Roles.Add(newrole);
+            await Context.Channel.SendMessageAsync("Adding Emote pair: " + e + " " + r);
+            Console.WriteLine("Adding Emote pair: " + e + " " + r);
+            try
             {
-
-                using (var result = await client.GetAsync(url))
-                {
-                    if (result.IsSuccessStatusCode)
-                    {
-                        return await result.Content.ReadAsByteArrayAsync();
-                    }
-
-                }
+                File.WriteAllText("EmoteRolePairs.json", JsonConvert.SerializeObject(Program.Roles));
             }
-            return null;
+            catch { await Context.Channel.SendMessageAsync("Failed to write to file! Are permissions set properly?"); }
         }
-        */
+
+        [Command("showemoterolepairs")]
+        [RequireUserPermission(Discord.GuildPermission.Administrator)]
+        public async Task ShowEmoteRolePairs()
+        {
+
+        }
+
+        [Command("deleteemoterolepair")]
+        [RequireUserPermission(Discord.GuildPermission.Administrator)]
+        public async Task DeleteEmoteRolePair(string e, string r)
+        {
+
+        }
 
         //✓ᵛᵉʳᶦᶠᶦᵉᵈ
     }
