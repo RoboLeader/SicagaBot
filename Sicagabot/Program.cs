@@ -9,6 +9,18 @@ using SicagaBot.Tools.Configuration;
 using System.Collections.Generic;
 using System.Linq;
 using Sicagabot.DTO;
+using Discord.Rest;
+
+/*
+ * To Do:
+ * 
+ * Move all variables, lists and objects that will be needed by the program to Configuration, 
+ * there's no reason it should be in Program.
+ * 
+ * Downloadfile can be updated to take advantage of Dotnet Core 2.0
+ * 
+ */
+
 
 namespace SicagaBot
 {
@@ -25,11 +37,12 @@ namespace SicagaBot
         private List<ulong> rolesMessages;
 
         //Channels we want the bot to ignore
-        private List<ulong> ignoredChannels = new List<ulong>();
+        public static List<ulong> ignoredChannels = new List<ulong>();
 
         //dictionary for roles
         public static List<EmoteRoleDTO> Roles = new List<EmoteRoleDTO>();
-       // private Dictionary<string, string> Roles = new Dictionary<string, string>();
+        public static List<EmoteRoleDTO> SingleRoles = new List<EmoteRoleDTO>();
+        // private Dictionary<string, string> Roles = new Dictionary<string, string>();
 
 
         // Keep the CommandService and IServiceCollection around for use with commands.
@@ -68,6 +81,11 @@ namespace SicagaBot
             //populate the dictionary of Roles and corresponding emotes
             _config.GetRoles(ref Roles);
             foreach (var v in Roles)
+            {
+                Console.WriteLine("We are looking for " + v.Emote + "and applying role " + v.Role);
+            }
+            _config.GetSingleRoles(ref SingleRoles);
+            foreach (var v in SingleRoles)
             {
                 Console.WriteLine("We are looking for " + v.Emote + "and applying role " + v.Role);
             }
@@ -222,7 +240,45 @@ namespace SicagaBot
                 }
                 if (found)//emote is found, break out.
                     break;
+                foreach (var kvp in SingleRoles)
+                {
+                    if (kvp.Emote == reaction.Emote.Name)
+                    {
+                        rolename = kvp.Role;
+                        var role = ((SocketGuildUser)reaction.User).Guild.Roles.Where(has => has.Name.ToUpper() == (rolename).ToUpper());
+                        await ((SocketGuildUser)reaction.User).AddRolesAsync(role);
+                        Console.WriteLine("Adding single role " + rolename + " to user " + reaction.User.ToString());
+
+                        //remove the emote
+                        var m = (RestUserMessage)await channel.GetMessageAsync(message.Id);
+                        var e2 = reaction.Emote;
+                        await m.RemoveReactionAsync(e2, reaction.User.Value);
+                        //clean up later
+                        KeyValuePair<string, string> key = new KeyValuePair<string, string>(kvp.Emote, kvp.Role);
+                        Dictionary<string, string> unusedroles = GetUnusedRoles(key);
+                        foreach (KeyValuePair<string, string> regionsToRemove in unusedroles)
+                        {
+
+                            role = ((SocketGuildUser)reaction.User).Guild.Roles.Where(has => has.Name.ToUpper() == (regionsToRemove.Value).ToUpper());
+                            await ((SocketGuildUser)reaction.User).RemoveRolesAsync(role);
+                            Console.WriteLine("removing role " + regionsToRemove.Value + " from user " + reaction.User.ToString());
+                        }
+                    }
+                } 
             }
+        }
+
+        //Get unused roles to remove
+        private Dictionary<string, string> GetUnusedRoles(KeyValuePair<string, string> removepair)
+        {
+            Dictionary<string, string> allroles = new Dictionary<string, string>();
+            foreach (var kvp  in SingleRoles)
+            {
+                allroles.Add(kvp.Emote, kvp.Role);
+                //Console.WriteLine("adding role " + a.Value + " to dictionary");
+            }
+            allroles.Remove(removepair.Key);
+            return allroles;
         }
 
         private async Task OnRemovedReaction(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)

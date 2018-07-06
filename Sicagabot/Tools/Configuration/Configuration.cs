@@ -10,10 +10,6 @@ using Discord.Addons.EmojiTools;
 
 //Tool to be called on startup and when bot configuration needs to be changed.
 
-//TO-DO:
-//Move all data the program will store into this class so we aren't just storing all kinds of crap wherever.
-//A bunch of stuff is stored in Program and I don't like it, this class exists for a reason.
-
 namespace SicagaBot.Tools.Configuration
 {
     public class Config
@@ -47,7 +43,7 @@ namespace SicagaBot.Tools.Configuration
                 }
                 catch
                 {
-                    Console.WriteLine("Failed to open EmoteRolePairs.json! Is the file missing and are permissions set?");
+                    Console.WriteLine("Failed to open messagestolistento.json! Is the file missing and are permissions set?");
                 }
                 m = JsonConvert.DeserializeObject<List<ulong>>(json);
                 }
@@ -74,6 +70,27 @@ namespace SicagaBot.Tools.Configuration
             catch (Exception)
             {
                 
+            }
+
+           
+        }
+
+        public void GetSingleRoles(ref List<EmoteRoleDTO> SingleRoles)
+        {
+            Console.WriteLine("\n-- Getting Single Emote/Role pairs");
+            string json = "";
+            try
+            {
+                try
+                {
+                    json = File.ReadAllText("SingleEmoteRolePairs.json");
+                }
+                catch { Console.WriteLine("Failed to open SingleEmoteRolePairs.json! Is the file missing and are permissions set?"); }
+                SingleRoles = JsonConvert.DeserializeObject<List<EmoteRoleDTO>>(json);
+            }
+            catch (Exception)
+            {
+
             }
         }
 
@@ -118,6 +135,11 @@ namespace SicagaBot.Tools.Configuration
         }
 
         public void ReLoad()
+        {
+
+        }
+
+        public void DeleteEmoteRolePair(string e, string r, SocketCommandContext context)
         {
 
         }
