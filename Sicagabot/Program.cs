@@ -28,22 +28,7 @@ namespace SicagaBot
     {
         private readonly DiscordSocketClient _client;
 
-        public static Config _config = new Config(); //startup config
-
-        //Token for login
-        private string Token = "";
-
-        //IDs for Messages we are listening in on
-        private List<ulong> rolesMessages;
-
-        //Channels we want the bot to ignore
-        public static List<ulong> ignoredChannels = new List<ulong>();
-
-        //dictionary for roles
-        public static List<EmoteRoleDTO> Roles = new List<EmoteRoleDTO>();
-        public static List<EmoteRoleDTO> SingleRoles = new List<EmoteRoleDTO>();
-        // private Dictionary<string, string> Roles = new Dictionary<string, string>();
-
+        public static Config _config = new Config(); //program config
 
         // Keep the CommandService and IServiceCollection around for use with commands.
         private readonly IServiceCollection _map = new ServiceCollection();
@@ -75,35 +60,11 @@ namespace SicagaBot
                 //WebSocketProvider = WS4NetProvider.Instance
             });
 
-            //get the login token from the config file
-            Token = _config.GetToken();
-            Console.WriteLine(Token);
-            //populate the dictionary of Roles and corresponding emotes
-            _config.GetRoles(ref Roles);
-            foreach (var v in Roles)
-            {
-                Console.WriteLine("We are looking for " + v.Emote + "and applying role " + v.Role);
-            }
-            _config.GetSingleRoles(ref SingleRoles);
-            foreach (var v in SingleRoles)
-            {
-                Console.WriteLine("We are looking for " + v.Emote + "and applying role " + v.Role);
-            }
-            //Get messages we are listening to
-            _config.GetMessagesListeningTo(ref rolesMessages);
-            foreach (ulong u in rolesMessages)
-            {
-                Console.WriteLine("we are listening to message " + u);
-            }
-            //get list of ignored channels
-            _config.GetIgnoredChannels(ref ignoredChannels);
-            foreach (ulong u in ignoredChannels)
-            {
-                Console.WriteLine("we are ignoring channel " + u);
-            }
-
             //set "playing" message
-            _client.SetGameAsync(".? for commands!");
+            _client.SetGameAsync("with art supplies");
+
+            //init config
+            _config.init();
         }
         
 
@@ -150,7 +111,7 @@ namespace SicagaBot
             await InitCommands();
 
             // Login and connect.
-            await _client.LoginAsync(TokenType.Bot, Token);
+            await _client.LoginAsync(TokenType.Bot, _config.Token);
             await _client.StartAsync();
 
             // Wait infinitely so your bot actually stays connected.
@@ -200,11 +161,35 @@ namespace SicagaBot
 
                 // Execute the command. (result does not indicate a return value, 
                 // rather an object stating if the command executed succesfully).
-                var result = await _commands.ExecuteAsync(context, pos, _services);
 
-                //TO-DO: add logging.
+                if (context.Channel.Id == 464627270829735936) //only execute if in the bot channel. Temporary.
+
+                {
+                    var result = await _commands.ExecuteAsync(context, pos, _services);
+
+                    //TO-DO: add logging.
+                    //New, copied from ChannelLinkerBot.
+                    if (result is SearchResult search && !search.IsSuccess)
+                    {
+                        // await message.AddReactionAsync(EmojiExtensions.FromText(":mag_right:"));
+                    }
+                    else if (result is PreconditionResult precondition && !precondition.IsSuccess)
+                        await msg.Channel.SendMessageAsync("Invoked {" + msg + "} in {" + context.Channel + "} with {" + result + "}");
+                    else if (result is ParseResult parse && !parse.IsSuccess)
+                        await msg.Channel.SendMessageAsync("Invoked {" + msg + "} in {" + context.Channel + "} with {" + result + "}");
+                    else if (result is TypeReaderResult reader && !reader.IsSuccess)
+                        await msg.Channel.SendMessageAsync("Invoked {" + msg + "} in {" + context.Channel + "} with {" + result + "}");
+                    else if (!result.IsSuccess)
+                        await msg.Channel.SendMessageAsync("Invoked {" + msg + "} in {" + context.Channel + "} with {" + result + "}");
+                }
+
+
 
             }
+            ////////////////////////////////////////////////////////////////////////
+            ////////        THE JOKES BEGIN HERE         ///////////////////////////
+            ////////////////////////////////////////////////////////////////////////
+
             //for things that aren't a command, but we still want the bot to respond to it.
             //for the previous bot it had a few "joke" responses to common user messages like "lol"
             else
@@ -222,49 +207,63 @@ namespace SicagaBot
         private async Task OnAddReaction(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
         {
             //Console.WriteLine("Reaction Added: " + reaction.Emote.Name);//DEBUG
-            foreach (ulong messageID in rolesMessages)
+            foreach (ulong messageID in _config.rolesMessages)
             {
-                string rolename = "";
-                bool found = false;//if we found a matching emote, no need to check anymore.
-                //Check to see if it matches an emote we're looking for
-                foreach (var kvp in Roles)
+                if (messageID == message.Id)
                 {
-                    if (kvp.Emote == reaction.Emote.Name)
+                    Console.WriteLine("Found reaction on listening message");
+                    string rolename = "";
+                    //Check to see if it matches an emote we're looking for
+                    foreach (var kvp in _config.Roles)
                     {
-                        rolename = kvp.Role;
-                        var role = ((SocketGuildUser)reaction.User).Guild.Roles.Where(has => has.Name.ToUpper() == (rolename).ToUpper());
-                        await ((SocketGuildUser)reaction.User).AddRolesAsync(role);
-                        Console.WriteLine("Adding role " + rolename + " to user " + reaction.User.ToString());
-                        found = true;
-                    }
-                }
-                if (found)//emote is found, break out.
-                    break;
-                foreach (var kvp in SingleRoles)
-                {
-                    if (kvp.Emote == reaction.Emote.Name)
-                    {
-                        rolename = kvp.Role;
-                        var role = ((SocketGuildUser)reaction.User).Guild.Roles.Where(has => has.Name.ToUpper() == (rolename).ToUpper());
-                        await ((SocketGuildUser)reaction.User).AddRolesAsync(role);
-                        Console.WriteLine("Adding single role " + rolename + " to user " + reaction.User.ToString());
-
-                        //remove the emote
-                        var m = (RestUserMessage)await channel.GetMessageAsync(message.Id);
-                        var e2 = reaction.Emote;
-                        await m.RemoveReactionAsync(e2, reaction.User.Value);
-                        //clean up later
-                        KeyValuePair<string, string> key = new KeyValuePair<string, string>(kvp.Emote, kvp.Role);
-                        Dictionary<string, string> unusedroles = GetUnusedRoles(key);
-                        foreach (KeyValuePair<string, string> regionsToRemove in unusedroles)
+                        //Console.WriteLine("checking regular roles");
+                        if (kvp.Emote == reaction.Emote.Name)
                         {
-
-                            role = ((SocketGuildUser)reaction.User).Guild.Roles.Where(has => has.Name.ToUpper() == (regionsToRemove.Value).ToUpper());
-                            await ((SocketGuildUser)reaction.User).RemoveRolesAsync(role);
-                            Console.WriteLine("removing role " + regionsToRemove.Value + " from user " + reaction.User.ToString());
+                            rolename = kvp.Role;
+                            var role = ((SocketGuildUser)reaction.User).Guild.Roles.Where(has => has.Name.ToUpper() == (rolename).ToUpper());
+                            await ((SocketGuildUser)reaction.User).AddRolesAsync(role);
+                            Console.WriteLine("Adding role " + rolename + " to user " + reaction.User.ToString());
+                            return;
                         }
                     }
-                } 
+
+                    foreach (var kvp in _config.SingleRoles)
+                    {
+                        //Console.WriteLine("in SingleRoles, this should play 21 times");
+                        if (kvp.Emote == reaction.Emote.Name)
+                        {
+                            //  Console.WriteLine("emote found");
+                            rolename = kvp.Role;
+                            var role = ((SocketGuildUser)reaction.User).Guild.Roles.Where(has => has.Name.ToUpper() == (rolename).ToUpper());
+                            await ((SocketGuildUser)reaction.User).AddRolesAsync(role);
+                            Console.WriteLine("Adding single role " + rolename + " to user " + reaction.User.ToString());
+
+                            //remove the emote
+                            var m = (RestUserMessage)await channel.GetMessageAsync(message.Id);
+                            var e2 = reaction.Emote;
+                            await m.RemoveReactionAsync(e2, reaction.User.Value);
+
+                            //create a list of all this user's roles.
+                            List<SocketRole> usersRoles = new List<SocketRole>(((SocketGuildUser)reaction.User).Roles);
+                            //iterate through the list of singleroles, remove all matching roles from user
+                            foreach (var i in _config.SingleRoles)
+                            {
+                                foreach (var o in usersRoles)
+                                {
+                                    if (i.Role == o.Name)
+                                    {
+                                        // if (usersRoles.Exists(x => x.Name.ToLower() == i.Role.ToLower())){
+                                        role = ((SocketGuildUser)reaction.User).Guild.Roles.Where(has => has.Name.ToUpper() == o.Name.ToUpper());
+                                        await ((SocketGuildUser)reaction.User).RemoveRolesAsync(role);
+                                        Console.WriteLine("removing role " + o.Name + " from user " + reaction.User.ToString());
+                                        return;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                else { }
             }
         }
 
@@ -272,7 +271,7 @@ namespace SicagaBot
         private Dictionary<string, string> GetUnusedRoles(KeyValuePair<string, string> removepair)
         {
             Dictionary<string, string> allroles = new Dictionary<string, string>();
-            foreach (var kvp  in SingleRoles)
+            foreach (var kvp in _config.SingleRoles)
             {
                 allroles.Add(kvp.Emote, kvp.Role);
                 //Console.WriteLine("adding role " + a.Value + " to dictionary");
@@ -288,14 +287,14 @@ namespace SicagaBot
             try
             {
                 //If the ID is the message that the bot is listening for reactions on
-                foreach (ulong messageID in rolesMessages)
+                foreach (ulong messageID in _config.rolesMessages)
                 {
                     if (reaction.MessageId == messageID)
                     {
                         //if the emote matches one in the dictionary
                         string rolename = "";
                         //if (Roles.TryGetValue(reaction.Emote.Name, out rolename))
-                        foreach (var kvp in Roles) {
+                        foreach (var kvp in _config.Roles) {
                                 if (kvp.Emote == reaction.Emote.Name)
                                 {
                                     rolename = kvp.Role;

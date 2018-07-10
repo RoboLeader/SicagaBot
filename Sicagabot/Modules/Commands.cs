@@ -1,29 +1,18 @@
 ﻿using Discord.Commands;
 using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
-using SicagaBot;
 using System.IO;
 using Newtonsoft.Json;
-using System.Runtime.InteropServices;
-using Discord.Rest;
-using Discord;
-using Discord.Addons.InteractiveCommands;
-using System.Xml.Linq;
-using System.Xml;
-using System.Linq;
-using System.Net;
-using System.Net.Http;
-using Discord.WebSocket;
 using Sicagabot.DTO;
+using Discord.WebSocket;
+using System.Collections.Generic;
 
 namespace SicagaBot.Modules
 {
     public class Commands : ModuleBase<SocketCommandContext>
     {
-        string version = "0.1";
-        
+        static string version = "0.1";
+
         [Command("help")]
         [Alias("?")]
         public async Task help()
@@ -32,6 +21,12 @@ namespace SicagaBot.Modules
                 (
                 "`.help` (Shows this message)" + Environment.NewLine
                 + "`.roll` (roll a die. Add a number to roll multiple 6-sided dice, add what kind of die to roll to roll one of those. *EX: .roll 3 d20*)"
+                + "\n\n **Admin commands:**"
+                + "`addmessagetolisten` (add a message for the bot to listen to reactions on)" +
+                "\n`showmessages` (show what messages the bot is listening on)" +
+                "\n`addemoterolepair` (adds a new emote role pair, format is `.addemoterolepair Emote Role`)" +
+                "\n`showemoterolepairs` (displays current emote role pairs)" +
+                "\n`addsingleemoterolepair` (add an exclusive emote role pair. Users can only have one of these roles at a time.)"
                 );
         }
         
@@ -151,8 +146,9 @@ namespace SicagaBot.Modules
                 + "**\nCreated by <@156651495884849153> using Discord.NET for the Sicaga Discord server.\n");
         }
 
-        //NOTE, this does not work properly on emotes with spaces in the name
-        //Gotta fix that.
+        //Todo:
+        // - support for roles and emotes with spaces
+        // - validation on if the role even exists
         [Command("addemoterolepair")]
         [RequireUserPermission(Discord.GuildPermission.Administrator)]
         public async Task AddEmoteRole(string e, [Remainder]string r)
@@ -160,12 +156,12 @@ namespace SicagaBot.Modules
             var newrole = new EmoteRoleDTO();
             newrole.Emote = e;
             newrole.Role = r;
-            Program.Roles.Add(newrole);
+            Program._config.Roles.Add(newrole);
             await Context.Channel.SendMessageAsync("Adding Emote pair: " + e + " " + r);
             Console.WriteLine("Adding Emote pair: " + e + " " + r);
             try
             {
-                File.WriteAllText("EmoteRolePairs.json", JsonConvert.SerializeObject(Program.Roles));
+                File.WriteAllText("EmoteRolePairs.json", JsonConvert.SerializeObject(Program._config.Roles));
             }
             catch { await Context.Channel.SendMessageAsync("Failed to write to file! Are permissions set properly?"); }
         }
@@ -175,37 +171,39 @@ namespace SicagaBot.Modules
         public async Task ShowEmoteRolePairs()
         {
             string msg = "";
-            foreach (var kvp in Program.Roles)
+            foreach (var kvp in Program._config.Roles)
             {
                 msg += "emote: " + kvp.Emote + " role: " + kvp.Role + Environment.NewLine;
             }
             await Context.Channel.SendMessageAsync(msg);
         }
 
+        //TODO: simplify command
         [Command("deleteemoterolepair")]
         [Alias("removeemoterolepair")]
         [RequireUserPermission(Discord.GuildPermission.Administrator)]
         public async Task DeleteEmoteRolePair(string e, string r)
         {
-            //Program._config.DeleteEmoteRolePair(e, r, Context);
+            //Program._config._config.DeleteEmoteRolePair(e, r, Context);
             bool found = false;
-            foreach (var kvp in Program.Roles)
+            foreach (var kvp in Program._config.Roles)
             {
                 if (kvp.Emote == e)
                 {
                     if (kvp.Role == r)
                     {
-                        Program.Roles.Remove(kvp);
+                        Program._config.Roles.Remove(kvp);
                         await Context.Channel.SendMessageAsync("emote pair found, removing.");
                         Console.WriteLine("removing emote pair " + e + " " + r);
                         //save the new JSON file
-                        File.WriteAllText("EmoteRolePairs.json", JsonConvert.SerializeObject(Program.Roles));
+                        File.WriteAllText("EmoteRolePairs.json", JsonConvert.SerializeObject(Program._config.Roles));
                         found = true;
                     }
                 }
-                if (!found)
-                    await Context.Channel.SendMessageAsync("No matching pair found.");
+                
             }
+            if (!found)
+                await Context.Channel.SendMessageAsync("No matching pair found.");
         }
 
         [Command("addignoredchannel")]
@@ -220,7 +218,7 @@ namespace SicagaBot.Modules
         public async Task ShowIgnoredChannels()
         {
             string msg = "";
-            foreach (var item in Program.ignoredChannels)
+            foreach (var item in Program._config.ignoredChannels)
             {
                 msg += "Ignored channel: " + item + Environment.NewLine;
             }
@@ -239,14 +237,24 @@ namespace SicagaBot.Modules
         [RequireUserPermission(Discord.GuildPermission.Administrator)]
         public async Task AddMessageToListen(ulong messageID)
         {
-
+            Program._config.rolesMessages.Add(messageID);
+            try
+            {
+                File.WriteAllText("messagestolistento.json", JsonConvert.SerializeObject(Program._config.rolesMessages));
+            }
+            catch { await Context.Channel.SendMessageAsync("Failed to write to file! Are permissions set properly?"); }
         }
 
         [Command("showmessages")]
         [RequireUserPermission(Discord.GuildPermission.Administrator)]
         public async Task ShowListeningMessages()
         {
-
+            string messages = "";
+            foreach (ulong i in Program._config.rolesMessages)
+            {
+                messages += i + "\n";
+            }
+            await Context.Channel.SendMessageAsync(messages);
         }
 
         [Command("deletemessagetolisten")]
@@ -258,8 +266,9 @@ namespace SicagaBot.Modules
         }
 
 
-        //NOTE, this does not work properly on emotes with spaces in the name
-        //Gotta fix that.
+        //Todo:
+        // - support for roles and emotes with spaces
+        // - validation on if the role even exists
         [Command("addsingleemoterolepair")]
         [RequireUserPermission(Discord.GuildPermission.Administrator)]
         public async Task AddSingleEmoteRole(string e, [Remainder]string r)
@@ -267,12 +276,12 @@ namespace SicagaBot.Modules
             var newrole = new EmoteRoleDTO();
             newrole.Emote = e;
             newrole.Role = r;
-            Program.SingleRoles.Add(newrole);
+            Program._config.SingleRoles.Add(newrole);
             await Context.Channel.SendMessageAsync("Adding Emote pair: " + e + " " + r);
             Console.WriteLine("Adding Emote pair: " + e + " " + r);
             try
             {
-                File.WriteAllText("SingleEmoteRolePairs.json", JsonConvert.SerializeObject(Program.SingleRoles));
+                File.WriteAllText("SingleEmoteRolePairs.json", JsonConvert.SerializeObject(Program._config.SingleRoles));
             }
             catch { await Context.Channel.SendMessageAsync("Failed to write to file! Are permissions set properly?"); }
         }
@@ -282,37 +291,39 @@ namespace SicagaBot.Modules
         public async Task ShowSingleEmoteRolePairs()
         {
             string msg = "";
-            foreach (var kvp in Program.SingleRoles)
+            foreach (var kvp in Program._config.SingleRoles)
             {
                 msg += "emote: " + kvp.Emote + " role: " + kvp.Role + Environment.NewLine;
             }
             await Context.Channel.SendMessageAsync(msg);
         }
 
+        //TODO: Simplify command
         [Command("deletesingleemoterolepair")]
         [Alias("removesingleemoterolepair")]
         [RequireUserPermission(Discord.GuildPermission.Administrator)]
         public async Task DeleteSingleEmoteRolePair(string e, string r)
         {
-            //Program._config.DeleteEmoteRolePair(e, r, Context);
+            //Program._config._config.DeleteEmoteRolePair(e, r, Context);
             bool found = false;
-            foreach (var kvp in Program.SingleRoles)
+            foreach (var kvp in Program._config.SingleRoles)
             {
                 if (kvp.Emote == e)
                 {
                     if (kvp.Role == r)
                     {
-                        Program.SingleRoles.Remove(kvp);
+                        Program._config.SingleRoles.Remove(kvp);
                         await Context.Channel.SendMessageAsync("emote pair found, removing.");
                         Console.WriteLine("removing emote pair " + e + " " + r);
                         //save the new JSON file
-                        File.WriteAllText("SingleEmoteRolePairs.json", JsonConvert.SerializeObject(Program.SingleRoles));
+                        File.WriteAllText("SingleEmoteRolePairs.json", JsonConvert.SerializeObject(Program._config.SingleRoles));
                         found = true;
                     }
                 }
-                if (!found)
-                    await Context.Channel.SendMessageAsync("No matching pair found.");
+                
             }
+            if (!found)
+                await Context.Channel.SendMessageAsync("No matching pair found.");
         }
 
         //✓ᵛᵉʳᶦᶠᶦᵉᵈ

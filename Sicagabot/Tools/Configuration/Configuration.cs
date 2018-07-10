@@ -14,7 +14,30 @@ namespace SicagaBot.Tools.Configuration
 {
     public class Config
     {
-        //get login token, nothing fancy here, just keeping it out of the code.
+        //Token for login
+        public string Token = "";
+
+        //IDs for Messages we are listening in on
+        public List<ulong> rolesMessages;
+
+        //Channels we want the bot to ignore
+        public List<ulong> ignoredChannels = new List<ulong>();
+
+        //dictionary for roles
+        public List<EmoteRoleDTO> Roles = new List<EmoteRoleDTO>();
+        public List<EmoteRoleDTO> SingleRoles = new List<EmoteRoleDTO>();
+        // private Dictionary<string, string> Roles = new Dictionary<string, string>();
+
+        public void init()
+        {
+           Token = GetToken();
+            GetMessagesListeningTo(ref rolesMessages);
+            GetRoles(ref Roles);
+            GetSingleRoles(ref SingleRoles);
+            GetMessagesListeningTo(ref rolesMessages);
+            GetIgnoredChannels(ref ignoredChannels);
+        }
+
         public string GetToken()
         {
             Console.WriteLine("\n-- Getting login Token");
@@ -22,9 +45,11 @@ namespace SicagaBot.Tools.Configuration
             try
                 {
                     s = File.ReadAllText("Token.txt");
-                    return s;
+                Console.WriteLine("\n-- Login token is " + s);
+                return s;
                 }
                 catch { Console.WriteLine("Failed to open Token.txt! Is the file missing and are permissions set?"); }
+           
             return s;
         }
 
@@ -51,6 +76,10 @@ namespace SicagaBot.Tools.Configuration
                 {
 
                 }
+            foreach (ulong u in m)
+            {
+                Console.WriteLine("we are listening to message " + u);
+            }
         }
 
         //populate the dictionary from file
@@ -71,8 +100,11 @@ namespace SicagaBot.Tools.Configuration
             {
                 
             }
+            foreach (var v in Roles)
+            {
+                Console.WriteLine("We are looking for " + v.Emote + "and applying role " + v.Role);
+            }
 
-           
         }
 
         public void GetSingleRoles(ref List<EmoteRoleDTO> SingleRoles)
@@ -92,10 +124,14 @@ namespace SicagaBot.Tools.Configuration
             {
 
             }
+            foreach (var v in SingleRoles)
+            {
+                Console.WriteLine("We are looking for " + v.Emote + "and applying role " + v.Role);
+            }
         }
 
         //get list of ignored channels
-        public void GetIgnoredChannels(ref List<ulong> ignoredchannels)
+        public void GetIgnoredChannels(ref List<ulong> ic)
         {
             Console.WriteLine("\n-- Getting list of ignored channels");
             string json = "";
@@ -106,11 +142,15 @@ namespace SicagaBot.Tools.Configuration
                     json = File.ReadAllText("ignoredchannels.json");
                 }
                 catch { Console.WriteLine("Failed to open ignoredchannels.json! Is the file missing and are permissions set?"); }
-                ignoredchannels = JsonConvert.DeserializeObject<List<ulong>>(json);
+                ic = JsonConvert.DeserializeObject<List<ulong>>(json);
             }
             catch (Exception)
             {
                 
+            }
+            foreach (ulong u in ic)
+            {
+                Console.WriteLine("we are ignoring channel " + u);
             }
         }
 
@@ -136,7 +176,12 @@ namespace SicagaBot.Tools.Configuration
 
         public void ReLoad()
         {
-
+            Console.WriteLine("-- Reloading from files\n");
+            GetMessagesListeningTo(ref rolesMessages);
+            GetRoles(ref Roles);
+            GetSingleRoles(ref SingleRoles);
+            GetMessagesListeningTo(ref rolesMessages);
+            GetIgnoredChannels(ref ignoredChannels);
         }
 
         public void DeleteEmoteRolePair(string e, string r, SocketCommandContext context)
