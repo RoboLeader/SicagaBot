@@ -5,7 +5,22 @@ using Microsoft.Extensions.DependencyInjection;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
-using SicagaBot.Services.Configuration;
+using SicagaBot.Tools.Configuration;
+using System.Collections.Generic;
+using System.Linq;
+using Sicagabot.DTO;
+using Discord.Rest;
+
+/*
+ * To Do:
+ * Downloadfile can be updated to take advantage of Dotnet Core 2.0
+ * New embed builder compatible with Discord.NET 2.0
+ * Clean up command names
+ * Elevated user map
+ * Interactive commands
+ * Channel whitelist (usingWhitelist bool in config)
+ */
+
 
 namespace SicagaBot
 {
@@ -13,7 +28,7 @@ namespace SicagaBot
     {
         private readonly DiscordSocketClient _client;
 
-        private Config _config = new Config(); //startup config
+        public static Config _config = new Config(); //program config
 
         // Keep the CommandService and IServiceCollection around for use with commands.
         private readonly IServiceCollection _map = new ServiceCollection();
@@ -44,8 +59,12 @@ namespace SicagaBot
                 // add the `using` at the top, and uncomment this line:
                 //WebSocketProvider = WS4NetProvider.Instance
             });
-            _config.Initialize();
-            _client.SetGameAsync(".? for commands!");
+
+            //set "playing" message
+            _client.SetGameAsync("with art supplies");
+
+            //init config
+            _config.init();
         }
         
 
@@ -120,6 +139,9 @@ namespace SicagaBot
 
             // Subscribe a handler to see if a message invokes a command.
             _client.MessageReceived += HandleCommandAsync;
+            // 
+            _client.ReactionAdded += OnAddReaction;
+            _client.ReactionRemoved += OnRemovedReaction;
         }
 
         private async Task HandleCommandAsync(SocketMessage arg)
@@ -139,11 +161,141 @@ namespace SicagaBot
 
                 // Execute the command. (result does not indicate a return value, 
                 // rather an object stating if the command executed succesfully).
-                var result = await _commands.ExecuteAsync(context, pos, _services);
+
+                if (context.Channel.Id == 464627270829735936) //only execute if in the bot channel. Temporary.
+
+                {
+                    var result = await _commands.ExecuteAsync(context, pos, _services);
+
+                    //TO-DO: add logging.
+                }
+
+
+
             }
+            ////////////////////////////////////////////////////////////////////////
+            ////////        THE JOKES BEGIN HERE         ///////////////////////////
+            ////////////////////////////////////////////////////////////////////////
+
+            //for things that aren't a command, but we still want the bot to respond to it.
+            //for the previous bot it had a few "joke" responses to common user messages like "lol"
             else
             {
+                //wave if mentioned directly
+                if (arg.Content.Contains("<@455932886097461249>"))
+                {
+                    IEmote emote = new Emoji("\U0001f44b");
+                    await msg.AddReactionAsync(emote);
+                }
+            }
+        }
+        
+        //when reactions are added to a message
+        private async Task OnAddReaction(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
+        {
+            //Console.WriteLine("Reaction Added: " + reaction.Emote.Name);//DEBUG
+            foreach (ulong messageID in _config.rolesMessages)
+            {
+                if (messageID == message.Id)
+                {
+                    Console.WriteLine("Found reaction on listening message");
+                    string rolename = "";
+                    //Check to see if it matches an emote we're looking for
+                    foreach (var kvp in _config.Roles)
+                    {
+                        //Console.WriteLine("checking regular roles");
+                        if (kvp.Emote == reaction.Emote.Name)
+                        {
+                            rolename = kvp.Role;
+                            var role = ((SocketGuildUser)reaction.User).Guild.Roles.Where(has => has.Name.ToUpper() == (rolename).ToUpper());
+                            await ((SocketGuildUser)reaction.User).AddRolesAsync(role);
+                            Console.WriteLine("Adding role " + rolename + " to user " + reaction.User.ToString());
+                            return;
+                        }
+                    }
 
+                    foreach (var kvp in _config.SingleRoles)
+                    {
+                        //Console.WriteLine("in SingleRoles, this should play 21 times");
+                        if (kvp.Emote == reaction.Emote.Name)
+                        {
+                            //  Console.WriteLine("emote found");
+                            rolename = kvp.Role;
+                            var role = ((SocketGuildUser)reaction.User).Guild.Roles.Where(has => has.Name.ToUpper() == (rolename).ToUpper());
+                            await ((SocketGuildUser)reaction.User).AddRolesAsync(role);
+                            Console.WriteLine("Adding single role " + rolename + " to user " + reaction.User.ToString());
+
+                            //remove the emote
+                            var m = (RestUserMessage)await channel.GetMessageAsync(message.Id);
+                            var e2 = reaction.Emote;
+                            await m.RemoveReactionAsync(e2, reaction.User.Value);
+
+                            //create a list of all this user's roles.
+                            List<SocketRole> usersRoles = new List<SocketRole>(((SocketGuildUser)reaction.User).Roles);
+                            //iterate through the list of singleroles, remove all matching roles from user
+                            foreach (var i in _config.SingleRoles)
+                            {
+                                foreach (var o in usersRoles)
+                                {
+                                    if (i.Role == o.Name)
+                                    {
+                                        // if (usersRoles.Exists(x => x.Name.ToLower() == i.Role.ToLower())){
+                                        role = ((SocketGuildUser)reaction.User).Guild.Roles.Where(has => has.Name.ToUpper() == o.Name.ToUpper());
+                                        await ((SocketGuildUser)reaction.User).RemoveRolesAsync(role);
+                                        Console.WriteLine("removing role " + o.Name + " from user " + reaction.User.ToString());
+                                        return;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                else { }
+            }
+        }
+
+        //Get unused roles to remove
+        private Dictionary<string, string> GetUnusedRoles(KeyValuePair<string, string> removepair)
+        {
+            Dictionary<string, string> allroles = new Dictionary<string, string>();
+            foreach (var kvp in _config.SingleRoles)
+            {
+                allroles.Add(kvp.Emote, kvp.Role);
+                //Console.WriteLine("adding role " + a.Value + " to dictionary");
+            }
+            allroles.Remove(removepair.Key);
+            return allroles;
+        }
+
+        private async Task OnRemovedReaction(Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel, SocketReaction reaction)
+        {
+            //Console.WriteLine("Reaction Removed: " + reaction.Emote.Name);//DEBUG
+
+            try
+            {
+                //If the ID is the message that the bot is listening for reactions on
+                foreach (ulong messageID in _config.rolesMessages)
+                {
+                    if (reaction.MessageId == messageID)
+                    {
+                        //if the emote matches one in the dictionary
+                        string rolename = "";
+                        //if (Roles.TryGetValue(reaction.Emote.Name, out rolename))
+                        foreach (var kvp in _config.Roles) {
+                                if (kvp.Emote == reaction.Emote.Name)
+                                {
+                                    rolename = kvp.Role;
+                                    var role = ((SocketGuildUser)reaction.User).Guild.Roles.Where(has => has.Name.ToUpper() == (rolename).ToUpper());
+                                    await ((SocketGuildUser)reaction.User).RemoveRolesAsync(role);
+                                    Console.WriteLine("removing role " + rolename + " from user " + reaction.User.ToString());
+                                }
+                            }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("Failure in role assignment script.");
             }
         }
     }
