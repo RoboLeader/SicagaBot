@@ -168,19 +168,6 @@ namespace SicagaBot
                     var result = await _commands.ExecuteAsync(context, pos, _services);
 
                     //TO-DO: add logging.
-                    //New, copied from ChannelLinkerBot.
-                    if (result is SearchResult search && !search.IsSuccess)
-                    {
-                        // await message.AddReactionAsync(EmojiExtensions.FromText(":mag_right:"));
-                    }
-                    else if (result is PreconditionResult precondition && !precondition.IsSuccess)
-                        await msg.Channel.SendMessageAsync("Invoked {" + msg + "} in {" + context.Channel + "} with {" + result + "}");
-                    else if (result is ParseResult parse && !parse.IsSuccess)
-                        await msg.Channel.SendMessageAsync("Invoked {" + msg + "} in {" + context.Channel + "} with {" + result + "}");
-                    else if (result is TypeReaderResult reader && !reader.IsSuccess)
-                        await msg.Channel.SendMessageAsync("Invoked {" + msg + "} in {" + context.Channel + "} with {" + result + "}");
-                    else if (!result.IsSuccess)
-                        await msg.Channel.SendMessageAsync("Invoked {" + msg + "} in {" + context.Channel + "} with {" + result + "}");
                 }
 
 
