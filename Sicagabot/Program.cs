@@ -13,12 +13,12 @@ using Discord.Rest;
 
 /*
  * To Do:
- * 
- * Move all variables, lists and objects that will be needed by the program to Configuration, 
- * there's no reason it should be in Program.
- * 
  * Downloadfile can be updated to take advantage of Dotnet Core 2.0
- * 
+ * New embed builder compatible with Discord.NET 2.0
+ * Clean up command names
+ * Elevated user map
+ * Interactive commands
+ * Channel whitelist (usingWhitelist bool in config)
  */
 
 

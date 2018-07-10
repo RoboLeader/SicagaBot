@@ -10,10 +10,17 @@ using Discord.Addons.EmojiTools;
 
 //Tool to be called on startup and when bot configuration needs to be changed.
 
+/* TO DO:
+ * Whitelist configuration
+ * Move more configuration options into a single file
+ * encapsulation.
+ */
+
 namespace SicagaBot.Tools.Configuration
 {
     public class Config
     {
+        public string version = "0.1";
         //Token for login
         public string Token = "";
 
@@ -23,10 +30,13 @@ namespace SicagaBot.Tools.Configuration
         //Channels we want the bot to ignore
         public List<ulong> ignoredChannels = new List<ulong>();
 
+        //optional list of channels to allow bot commands in
+        public bool usingWhitelist = false;
+        public List<ulong> allowedChannels = new List<ulong>();
+
         //dictionary for roles
         public List<EmoteRoleDTO> Roles = new List<EmoteRoleDTO>();
         public List<EmoteRoleDTO> SingleRoles = new List<EmoteRoleDTO>();
-        // private Dictionary<string, string> Roles = new Dictionary<string, string>();
 
         public void init()
         {
@@ -52,8 +62,6 @@ namespace SicagaBot.Tools.Configuration
            
             return s;
         }
-
-        
 
         //get all the messages that we are listening for reactions on.
         public void GetMessagesListeningTo(ref List<ulong> m)

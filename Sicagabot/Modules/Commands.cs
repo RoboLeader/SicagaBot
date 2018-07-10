@@ -11,8 +11,6 @@ namespace SicagaBot.Modules
 {
     public class Commands : ModuleBase<SocketCommandContext>
     {
-        static string version = "0.1";
-
         [Command("help")]
         [Alias("?")]
         public async Task help()
@@ -142,8 +140,8 @@ namespace SicagaBot.Modules
         [RequireUserPermission(Discord.GuildPermission.Administrator)]
         public async Task about()
         {
-            await Context.Channel.SendMessageAsync("**SicagaBot version: " + version
-                + "**\nCreated by <@156651495884849153> using Discord.NET for the Sicaga Discord server.\n");
+            await Context.Channel.SendMessageAsync("**SicagaBot version: " + Program._config.version
+                + "**\nCreated by Craig Hauser (<@156651495884849153>) using Discord.NET for the Sicaga Discord server.\n");
         }
 
         //Todo:

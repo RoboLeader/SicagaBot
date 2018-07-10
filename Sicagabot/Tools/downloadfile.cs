@@ -4,11 +4,14 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 
+
+/* TODO:
+ * Update. We don't have to rely on dotnet core 1.0 anymore.
+ */
 namespace Sicagabot.Services
 {
     class DownloadFile
     {
-        //download file code
         //uses HttpClient to maintain compatability with dotnet Core 1.0
         public static async Task<byte[]> DownloadAsByteArray(string url)
         {
