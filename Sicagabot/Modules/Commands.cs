@@ -64,6 +64,8 @@ namespace SicagaBot.Modules
             // if the die is a d8, d12 or d20
             if (s == "d8")
             await Context.Channel.SendMessageAsync(Context.User.Mention + ", you rolled a **" + die.Next(1, 8) + "**");
+            else if (s == "d10")
+                await Context.Channel.SendMessageAsync(Context.User.Mention + ", you rolled a **" + die.Next(1, 10) + "**");
             else if (s == "d12")
                 await Context.Channel.SendMessageAsync(Context.User.Mention + ", you rolled a **" + die.Next(1, 12) + "**");
             else if (s == "d20")
@@ -94,6 +96,22 @@ namespace SicagaBot.Modules
                     total += adder;
                 }
                 adder = die.Next(1, 8);
+                total += adder;
+                msg += "**" + adder + "** for a total of **" + total + "**";
+                await Context.Channel.SendMessageAsync(Context.User.Mention + msg);
+            }
+            else if (s == "d10")
+            {
+                adder = die.Next(1, 10);
+                string msg = ", you rolled **" + adder + "**, ";
+                total += adder;
+                for (int count = 2; count < i; count++)
+                {
+                    adder = die.Next(1, 10);
+                    msg += "**" + adder + "**, ";
+                    total += adder;
+                }
+                adder = die.Next(1, 10);
                 total += adder;
                 msg += "**" + adder + "** for a total of **" + total + "**";
                 await Context.Channel.SendMessageAsync(Context.User.Mention + msg);
