@@ -1,5 +1,5 @@
 # SicagaBot
-Bot for the Sicaga Discord server built using [Discord.net](https://github.com/RoboLeader/SicagaBot/tree/EmoteReactions) and targeting Dotnet Core 2.0
+Bot for the Sicaga Discord server built using [Discord.net](https://github.com/RogueException/Discord.Net) and targeting Dotnet Core 2.0
 
 ## Current Features
 - Assigns roles based on reactions to specified messages in two ways
